@@ -52,7 +52,8 @@ class Config:
         self.announce_messages: bool = os.getenv('ANNOUNCE_MESSAGES', 'false').lower() == 'true'
         self.debug: bool = os.getenv('DEBUG', 'false').lower() == 'true'
         self.show_logo: bool = os.getenv('SHOW_LOGO', 'true').lower() == 'true'
-        logging.debug(f"Loaded feature flags - announce_messages: {self.announce_messages}, debug: {self.debug}, show_logo: {self.show_logo}")
+        self.add_reactions: bool = os.getenv('ADD_REACTIONS', 'true').lower() == 'true'
+        logging.debug(f"Loaded feature flags - announce_messages: {self.announce_messages}, debug: {self.debug}, show_logo: {self.show_logo}, add_reactions: {self.add_reactions}")
     
     def validate(self) -> List[str]:
         """Validate the configuration and return a list of error messages."""

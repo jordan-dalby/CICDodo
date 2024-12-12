@@ -41,26 +41,27 @@ class ModUpdateCog(commands.Cog):
         message = await channel.send(content=content, embed=embed)
         logging.debug("Message sent successfully")
         
-        # Add reactions to the message
-        reactions = ['👍', '❤️']
-        for reaction in reactions:
-            try:
-                await message.add_reaction(reaction)
-                logging.debug(f"Added reaction {reaction} to message")
-            except discord.errors.Forbidden:
-                logging.error("Failed to add reaction - missing permissions")
-            except discord.errors.HTTPException:
-                logging.error(f"Failed to add reaction {reaction}")
-        
-        if config.announce_messages and not config.debug:
-            logging.debug("Attempting to publish message")
-            try:
-                await message.publish()
-                logging.debug("Message published successfully")
-            except discord.errors.Forbidden:
-                logging.error("Failed to publish message - missing permissions")
-            except discord.errors.HTTPException:
-                logging.error("Failed to publish message - not in news channel")
+        if config.add_reactions:
+            # Add reactions to the message
+            reactions = ['👍', '❤️']
+            for reaction in reactions:
+                try:
+                    await message.add_reaction(reaction)
+                    logging.debug(f"Added reaction {reaction} to message")
+                except discord.errors.Forbidden:
+                    logging.error("Failed to add reaction - missing permissions")
+                except discord.errors.HTTPException:
+                    logging.error(f"Failed to add reaction {reaction}")
+            
+            if config.announce_messages and not config.debug:
+                logging.debug("Attempting to publish message")
+                try:
+                    await message.publish()
+                    logging.debug("Message published successfully")
+                except discord.errors.Forbidden:
+                    logging.error("Failed to publish message - missing permissions")
+                except discord.errors.HTTPException:
+                    logging.error("Failed to publish message - not in news channel")
 
     async def send_release_notification(self, mod_id: int, channel: Optional[discord.TextChannel] = None) -> None:
         """Send a release notification for a specific mod to the specified channel."""
