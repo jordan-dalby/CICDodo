@@ -2,6 +2,11 @@
 
 A Discord bot that monitors CurseForge mods and announces new releases to specified Discord channels.
 
+## Creating a Discord Bot
+
+To run CICDodo you'll need a bot that can send messages, follow these instructions to create one:
+https://discordpy.readthedocs.io/en/stable/discord.html
+
 ## Configuration
 
 Before running the bot, you need to create a `.env` file with your configuration. Use the provided `.env.example` as a template:
