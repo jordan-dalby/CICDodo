@@ -6,9 +6,6 @@ import logging
 from markdownify import markdownify as md
 import re
 
-# Configure logging to output debug messages to stdout
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
 class CurseForgeAPI:
     BASE_URL = "https://api.curseforge.com/v1"
     GAME_ID_ARK_SA = 828326  # Game ID for ARK: Survival Ascended
