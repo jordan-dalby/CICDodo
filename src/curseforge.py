@@ -111,7 +111,8 @@ class CurseForgeAPI:
                      heading_style="atx",
                      bullets="-",
                      strip=['script', 'style'],
-                     code_language="python")
+                     code_language="python",
+                     escape_asterisks=False)
         
         changelog = markdown.replace(u'\xa0', u' ')
 

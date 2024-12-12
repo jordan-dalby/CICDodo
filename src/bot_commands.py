@@ -35,37 +35,96 @@ class ModUpdateCog(commands.Cog):
         logging.debug(f"Formatted header: {header}")
         return header
 
-    async def send_message(self, content: str, embed: Optional[discord.Embed] = None) -> None:
-        channel_id = config.debug_channel_id if config.debug else config.releases_channel_id
-        logging.debug(f"Sending message to channel ID: {channel_id}")
-        channel = self.bot.get_channel(channel_id)
+    async def send_message(self, channel: discord.TextChannel, content: str, embed: Optional[discord.Embed] = None) -> None:
+        """Send a message to the specified channel with optional embed and reactions."""
+        logging.debug(f"Sending message to channel: {channel.name}")
+        message = await channel.send(content=content, embed=embed)
+        logging.debug("Message sent successfully")
         
-        if channel:
-            message = await channel.send(content=content, embed=embed)
-            logging.debug("Message sent successfully")
+        # Add reactions to the message
+        reactions = ['👍', '❤️']
+        for reaction in reactions:
+            try:
+                await message.add_reaction(reaction)
+                logging.debug(f"Added reaction {reaction} to message")
+            except discord.errors.Forbidden:
+                logging.error("Failed to add reaction - missing permissions")
+            except discord.errors.HTTPException:
+                logging.error(f"Failed to add reaction {reaction}")
+        
+        if config.announce_messages and not config.debug:
+            logging.debug("Attempting to publish message")
+            try:
+                await message.publish()
+                logging.debug("Message published successfully")
+            except discord.errors.Forbidden:
+                logging.error("Failed to publish message - missing permissions")
+            except discord.errors.HTTPException:
+                logging.error("Failed to publish message - not in news channel")
+
+    async def send_release_notification(self, mod_id: int, channel: Optional[discord.TextChannel] = None) -> None:
+        """Send a release notification for a specific mod to the specified channel."""
+        try:
+            latest_file = await self.cf_api.get_latest_file(mod_id)
+            if not latest_file:
+                logging.warning(f"No latest file found for mod ID: {mod_id}")
+                return
+
+            mod_info = await self.cf_api.get_mod_info(mod_id)
+            version = latest_file['version']
+            logging.debug(f"Found version {version} for mod {mod_info['name']}")
+
+            header = self.format_header(mod_info['name'], version)
+            embed = discord.Embed(
+                title=mod_info['name'],
+                description=header,
+                color=discord.Color.green(),
+                timestamp=datetime.now()
+            )
             
-            # Add reactions to the message
-            reactions = ['👍', '❤️']
-            for reaction in reactions:
-                try:
-                    await message.add_reaction(reaction)
-                    logging.debug(f"Added reaction {reaction} to message")
-                except discord.errors.Forbidden:
-                    logging.error("Failed to add reaction - missing permissions")
-                except discord.errors.HTTPException:
-                    logging.error(f"Failed to add reaction {reaction}")
+            if config.show_logo and 'logo' in mod_info and mod_info['logo'] and 'url' in mod_info['logo']:
+                logging.debug("Adding mod logo to embed")
+                embed.set_thumbnail(url=mod_info['logo']['url'])
             
-            if config.announce_messages and not config.debug:
-                logging.debug("Attempting to publish message")
-                try:
-                    await message.publish()
-                    logging.debug("Message published successfully")
-                except discord.errors.Forbidden:
-                    logging.error("Failed to publish message - missing permissions")
-                except discord.errors.HTTPException:
-                    logging.error("Failed to publish message - not in news channel")
-        else:
-            logging.error(f"Channel not found with ID: {channel_id}")
+            if changelog := latest_file.get('changelog'):
+                logging.debug("Adding changelog to embed")
+                embed.add_field(
+                    name="Changelog",
+                    value=changelog,
+                    inline=False
+                )
+            
+            if config.message_footer:
+                logging.debug("Adding footer to embed")
+                footer_text = config.message_footer.format(
+                    mod_name=mod_info['name'],
+                    version=version
+                )
+                embed.add_field(
+                    name=footer_text,
+                    value="",
+                    inline=False
+                )
+
+            # If no specific channel is provided, use the configured channel
+            if channel is None:
+                channel_id = config.debug_channel_id if config.debug else config.releases_channel_id
+                channel = self.bot.get_channel(channel_id)
+                if not channel:
+                    logging.error(f"Channel not found with ID: {channel_id}")
+                    return
+
+            await self.send_message(
+                channel=channel,
+                content=config.message_tag,
+                embed=embed
+            )
+            
+            logging.info(f"Successfully sent release notification for {mod_info['name']} version {version}")
+            return True
+        except Exception as e:
+            logging.error(f"Error sending release notification for mod {mod_id}: {str(e)}", exc_info=True)
+            return False
 
     @tasks.loop(minutes=5)
     async def check_updates(self):
@@ -78,54 +137,12 @@ class ModUpdateCog(commands.Cog):
                     logging.warning(f"No latest file found for mod ID: {mod_id}")
                     continue
 
-                mod_info = await self.cf_api.get_mod_info(mod_id)
                 version = latest_file['version']
-                logging.debug(f"Found version {version} for mod {mod_info['name']}")
-                
                 if not self.storage.is_version_released(str(mod_id), version):
-                    logging.info(f"New version {version} found for mod {mod_info['name']}")
-                    header = self.format_header(mod_info['name'], version)
-                    embed = discord.Embed(
-                        title=mod_info['name'],
-                        description=header,
-                        color=discord.Color.green(),
-                        timestamp=datetime.now()
-                    )
-                    
-                    if config.show_logo and 'logo' in mod_info and mod_info['logo'] and 'url' in mod_info['logo']:
-                        logging.debug("Adding mod logo to embed")
-                        embed.set_thumbnail(url=mod_info['logo']['url'])
-                    
-                    if changelog := latest_file.get('changelog'):
-                        logging.debug("Adding changelog to embed")
-                        embed.add_field(
-                            name="Changelog",
-                            value=changelog,
-                            inline=False
-                        )
-                    
-                    if config.message_footer:
-                        logging.debug("Adding footer to embed")
-                        footer_text = config.message_footer.format(
-                            mod_name=mod_info['name'],
-                            version=version
-                        )
-                        embed.add_field(
-                            name=footer_text,
-                            value="",
-                            inline=False
-                        )
-                    
-                    await self.send_message(
-                        content=config.message_tag,
-                        embed=embed
-                    )
-                    
-                    self.storage.mark_version_released(str(mod_id), version)
-                    logging.info(f"Successfully processed and announced version {version} for mod {mod_info['name']}")
+                    if await self.send_release_notification(mod_id):
+                        self.storage.mark_version_released(str(mod_id), version)
                 else:
-                    logging.debug(f"Version {version} of mod {mod_info['name']} already released")
-            
+                    logging.debug(f"Version {version} already released for mod ID: {mod_id}")
             except Exception as e:
                 logging.error(f"Error checking mod {mod_id}: {str(e)}", exc_info=True)
                 continue
@@ -147,6 +164,25 @@ class ModUpdateCog(commands.Cog):
         await self.check_updates()
         logging.info("Force check completed")
         await ctx.send("Update check completed.")
+
+    @commands.command()
+    @commands.is_owner()
+    async def test_release(self, ctx):
+        """Send the latest release of the first mod to the current channel for testing."""
+        logging.info("Test release command received")
+        try:
+            if not config.mod_ids:
+                await ctx.send("No mod IDs configured.")
+                return
+
+            mod_id = config.mod_ids[0]
+            success = await self.send_release_notification(mod_id, ctx.channel)
+            if not success:
+                await ctx.send(f"Failed to send test release for mod ID: {mod_id}")
+        except Exception as e:
+            error_msg = f"Error sending test release: {str(e)}"
+            logging.error(error_msg, exc_info=True)
+            await ctx.send(error_msg)
 
 async def setup(bot: commands.Bot):
     logging.debug("Setting up ModUpdateCog")
