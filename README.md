@@ -101,3 +101,5 @@ docker run -d \
 
 ### Unraid
 Updates can be installed through the Unraid web interface when they become available.
+
+![Screenshot](screenshot.png)
