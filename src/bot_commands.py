@@ -89,6 +89,13 @@ class ModUpdateCog(commands.Cog):
             
             if changelog := latest_file.get('changelog'):
                 logging.debug("Adding changelog to embed")
+                file_url = f"https://www.curseforge.com/ark-survival-ascended/mods/{mod_info['slug']}/files/{latest_file['id']}"
+                suffix = "...\n\n[View full changelog on CurseForge]"
+                remaining_space = 1024 - (len(suffix) + len(file_url) + 2)
+                
+                if len(changelog) > remaining_space:
+                    changelog = f"{changelog[:remaining_space]}{suffix}({file_url})"
+                
                 embed.add_field(
                     name="Changelog",
                     value=changelog,
