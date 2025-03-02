@@ -23,7 +23,9 @@ class CurseForgeAPI:
 
     def extract_version(self, filename: str) -> str:
         """Extract version number from filename."""
-        match = re.search(r'windowsserver\s+(\d+)\.zip', filename.lower())
+        # Match version number from various platform formats
+        logging.debug(f"Extracting version from filename: {filename}")
+        match = re.search(r'(?:windows(?:server)?|ps5|xboxxs)\s+(\d+)\.zip', filename.lower())
         if match:
             return match.group(1)
         return filename
