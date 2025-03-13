@@ -20,7 +20,7 @@ Then edit the `.env` file with your settings:
 
 - `MOD_IDS`: Comma-separated list of CurseForge mod IDs to monitor
 - `DEBUG_CHANNEL_ID`: Discord channel ID for debug messages
-- `RELEASES_CHANNEL_ID`: Discord channel ID for release announcements
+- `RELEASES_CHANNEL_IDS`: Discord channel IDs for release announcements, separated by commas, the index of the mod ID will be used to determine which channel to post to
 - `BOT_TOKEN`: Your Discord bot token
 - `CURSEFORGE_API_KEY`: Your CurseForge API key
 - Additional optional settings are available in the `.env.example` file

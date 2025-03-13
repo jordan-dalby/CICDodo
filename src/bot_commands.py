@@ -116,11 +116,33 @@ class ModUpdateCog(commands.Cog):
 
             # If no specific channel is provided, use the configured channel
             if channel is None:
-                channel_id = config.debug_channel_id if config.debug else config.releases_channel_id
-                channel = self.bot.get_channel(channel_id)
+                if config.debug:
+                    logging.debug("Debug mode enabled, using debug channel")
+                    channel = self.bot.get_channel(config.debug_channel_id)
+                else:
+                    # Get the index of the current mod_id to find its corresponding channel
+                    try:
+                        mod_index = config.mod_ids.index(mod_id)
+
+                        # Use corresponding channel if available, otherwise use first channel
+                        if mod_index < len(config.releases_channel_ids):
+                            channel_id = config.releases_channel_ids[mod_index]
+                        else:
+                            channel_id = config.releases_channel_ids[0]
+                            logging.warning(
+                                f"No dedicated channel for mod {mod_id} at index {mod_index}. "
+                                f"Using fallback channel {channel_id}"
+                            )
+                            
+                        channel = self.bot.get_channel(channel_id)
+                        logging.debug(f"Retrieved channel object: {channel}")
+                    except (ValueError, IndexError) as e:
+                        logging.error(f"Failed to find matching channel for mod {mod_id}: {str(e)}")
+                        return False
+
                 if not channel:
-                    logging.error(f"Channel not found with ID: {channel_id}")
-                    return
+                    logging.error(f"Channel not found for mod {mod_id}")
+                    return False
 
             await self.send_message(
                 channel=channel,

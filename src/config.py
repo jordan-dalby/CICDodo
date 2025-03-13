@@ -30,8 +30,14 @@ class Config:
         # Discord settings
         self.bot_token: str = os.getenv('BOT_TOKEN', '')
         self.debug_channel_id: int = int(os.getenv('DEBUG_CHANNEL_ID', '0'))
-        self.releases_channel_id: int = int(os.getenv('RELEASES_CHANNEL_ID', '0'))
-        logging.debug(f"Loaded Discord settings - debug_channel_id: {self.debug_channel_id}, releases_channel_id: {self.releases_channel_id}")
+        
+        # Parse releases channel IDs
+        self.releases_channel_ids: List[int] = [
+            int(channel_id.strip()) 
+            for channel_id in os.getenv('RELEASES_CHANNEL_IDS', '').split(',')
+            if channel_id.strip()
+        ]
+        logging.debug(f"Loaded Discord settings - debug_channel_id: {self.debug_channel_id}, releases_channel_ids: {self.releases_channel_ids}")
         
         # CurseForge settings
         self.curseforge_api_key: str = os.getenv('CURSEFORGE_API_KEY', '')
@@ -64,12 +70,20 @@ class Config:
             errors.append("BOT_TOKEN is required")
         if not self.debug_channel_id:
             errors.append("DEBUG_CHANNEL_ID is required")
-        if not self.releases_channel_id:
-            errors.append("RELEASES_CHANNEL_ID is required")
+        if not self.releases_channel_ids:
+            errors.append("RELEASES_CHANNEL_IDS is required")
         if not self.curseforge_api_key:
             errors.append("CURSEFORGE_API_KEY is required")
         if not self.mod_ids:
             errors.append("At least one MOD_ID is required")
+        
+        # Warn if number of channels doesn't match mods
+        if len(self.mod_ids) > len(self.releases_channel_ids):
+            logging.warning(
+                f"Fewer release channels ({len(self.releases_channel_ids)}) "
+                f"than mods ({len(self.mod_ids)}). "
+                "Extra mods will use the first channel."
+            )
             
         if errors:
             logging.error(f"Configuration validation failed with errors: {errors}")
