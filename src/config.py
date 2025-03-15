@@ -40,7 +40,9 @@ class Config:
         logging.debug(f"Loaded Discord settings - debug_channel_id: {self.debug_channel_id}, releases_channel_ids: {self.releases_channel_ids}")
         
         # CurseForge settings
-        self.curseforge_api_key: str = os.getenv('CURSEFORGE_API_KEY', '')
+        raw_key = os.getenv('CURSEFORGE_API_KEY', '')
+        logging.debug(f"Raw Curseforge API Key from env: {raw_key}")
+        self.curseforge_api_key: str = raw_key.replace("'", "").replace('"', '')
         self.mod_ids: List[int] = [
             int(mod_id.strip()) 
             for mod_id in os.getenv('MOD_IDS', '').split(',')
@@ -76,6 +78,8 @@ class Config:
             errors.append("CURSEFORGE_API_KEY is required")
         if not self.mod_ids:
             errors.append("At least one MOD_ID is required")
+
+        logging.debug(f"Curseforge API Key: {self.curseforge_api_key}")
         
         # Warn if number of channels doesn't match mods
         if len(self.mod_ids) > len(self.releases_channel_ids):
